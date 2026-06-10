@@ -31,6 +31,31 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ╔══════════════════════════════════════════╗
+# ║         🍪  YouTube Cookie Setup         ║
+# ╚══════════════════════════════════════════╝
+def _find_cookie_file() -> str | None:
+    """หา cookies.txt จากหลาย path (Render Secret Files / local)"""
+    paths = [
+        "/etc/secrets/cookies.txt",   # Render Secret Files
+        "cookies.txt",                 # Local / GitHub
+    ]
+    for p in paths:
+        if os.path.exists(p):
+            print(f"  🍪  Using cookies: {p}")
+            return p
+    print("  ⚠️  No cookies.txt found — YouTube may block requests")
+    return None
+
+COOKIE_FILE = _find_cookie_file()
+
+def _ytdl_opts(base: dict) -> dict:
+    """เพิ่ม cookiefile ถ้ามี"""
+    if COOKIE_FILE:
+        return {**base, "cookiefile": COOKIE_FILE}
+    return base
+
+
+# ╔══════════════════════════════════════════╗
 # ║          YT-DLP / FFmpeg Options         ║
 # ╚══════════════════════════════════════════╝
 YTDL_OPTS_SEARCH = {
@@ -348,15 +373,15 @@ class MusicCog(commands.Cog):
     async def _fetch_songs(self, query: str) -> list[dict]:
         loop = asyncio.get_event_loop()
         if _is_playlist(query):
-            dl  = yt_dlp.YoutubeDL(YTDL_OPTS_PLAYLIST)
+            dl  = yt_dlp.YoutubeDL(_ytdl_opts(YTDL_OPTS_PLAYLIST))
             raw = await loop.run_in_executor(None, lambda: dl.extract_info(query, download=False))
             entries = raw.get("entries") or []
         elif _is_url(query):
-            dl  = yt_dlp.YoutubeDL(YTDL_OPTS_SEARCH)
+            dl  = yt_dlp.YoutubeDL(_ytdl_opts(YTDL_OPTS_SEARCH))
             raw = await loop.run_in_executor(None, lambda: dl.extract_info(query, download=False))
             entries = [raw]
         else:
-            dl  = yt_dlp.YoutubeDL(YTDL_OPTS_SEARCH)
+            dl  = yt_dlp.YoutubeDL(_ytdl_opts(YTDL_OPTS_SEARCH))
             raw = await loop.run_in_executor(
                 None, lambda: dl.extract_info(f"ytsearch1:{query}", download=False)
             )
@@ -376,7 +401,7 @@ class MusicCog(commands.Cog):
 
     async def _get_stream_url(self, webpage_url: str) -> str:
         loop = asyncio.get_event_loop()
-        dl   = yt_dlp.YoutubeDL(YTDL_OPTS_STREAM)
+        dl   = yt_dlp.YoutubeDL(_ytdl_opts(YTDL_OPTS_STREAM))
         data = await loop.run_in_executor(None, lambda: dl.extract_info(webpage_url, download=False))
         if "entries" in data:
             data = data["entries"][0]
