@@ -418,7 +418,15 @@ class MusicCog(commands.Cog):
         st["current"] = song
 
         try:
-            stream_url = await self._get_stream_url(song["webpage_url"])
+            try:
+                stream_url = await asyncio.wait_for(
+                    self._get_stream_url(song["webpage_url"]), timeout=25.0
+                )
+            except asyncio.TimeoutError:
+                if channel:
+                    await channel.send(f"❌ โหลดไม่ได้ภายใน 25 วิ ข้ามเพลง **{song['title']}**")
+                asyncio.run_coroutine_threadsafe(self.play_next(guild_id), self.bot.loop)
+                return
             source = discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(stream_url, **FFMPEG_OPTS),
                 volume=st["volume"] / 100,
@@ -473,7 +481,9 @@ class MusicCog(commands.Cog):
         st["text_ch"] = interaction.channel
 
         try:
-            songs = await self._fetch_songs(query)
+            songs = await asyncio.wait_for(self._fetch_songs(query), timeout=25.0)
+        except asyncio.TimeoutError:
+            return await interaction.followup.send("❌ หมดเวลาค้นหา กรุณาลองใหม่")
         except Exception as e:
             return await interaction.followup.send(f"❌ ค้นหาไม่สำเร็จ: `{e}`")
 
