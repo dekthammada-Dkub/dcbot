@@ -42,6 +42,10 @@ YTDL_OPTS_SEARCH = {
     "no_warnings": True,
     "default_search": "auto",
     "source_address": "0.0.0.0",
+    "socket_timeout": 8,       # timeout ต่อ connection
+    "retries": 2,
+    "skip_download": True,
+    "geo_bypass": True,
 }
 YTDL_OPTS_PLAYLIST = {
     "format": "bestaudio/best",
@@ -61,6 +65,9 @@ YTDL_OPTS_STREAM = {
     "quiet": True,
     "no_warnings": True,
     "source_address": "0.0.0.0",
+    "socket_timeout": 8,
+    "retries": 2,
+    "geo_bypass": True,
 }
 FFMPEG_OPTS = {
     "before_options": (
@@ -351,7 +358,7 @@ class MusicCog(commands.Cog):
         else:
             dl  = yt_dlp.YoutubeDL(YTDL_OPTS_SEARCH)
             raw = await loop.run_in_executor(
-                None, lambda: dl.extract_info(f"ytsearch:{query}", download=False)
+                None, lambda: dl.extract_info(f"ytsearch1:{query}", download=False)
             )
             entries = (raw.get("entries") or [raw])[:1]
 
